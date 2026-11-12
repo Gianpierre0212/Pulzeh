@@ -10,6 +10,12 @@ pub struct AplicacionPulzeh {
     // Guarda las últimas mediciones de CPU para calcular un promedio.
     historial_cpu: Vec<f32>,
 
+    // Guarda los últimos porcentajes de memoria RAM.
+    historial_memoria: Vec<f32>,
+
+    // Guarda el último porcentaje de memoria calculado.
+    porcentaje_memoria_actual: f32,
+
     // Guarda la última medición instantánea de CPU.
     uso_cpu_actual: f32,
 
@@ -25,6 +31,8 @@ impl AplicacionPulzeh {
         Self {
             sistema,
             historial_cpu: Vec::new(),
+            historial_memoria: Vec::new(),
+            porcentaje_memoria_actual: 0.0,
             uso_cpu_actual: 0.0,
             ultima_actualizacion: Instant::now(),
         }
@@ -40,6 +48,18 @@ impl eframe::App for AplicacionPulzeh {
         if self.ultima_actualizacion.elapsed().as_secs() >= 1 {
             let uso_cpu = sistema::cpu::actualizar(&mut self.sistema);
             sistema::memoria::actualizar(&mut self.sistema);
+
+            let (_, _, porcentaje_memoria) = sistema::memoria::leer(&self.sistema);
+            self.porcentaje_memoria_actual = porcentaje_memoria;
+
+            // Guardamos el porcentaje de memoria en el historial.
+            self.historial_memoria.push(porcentaje_memoria);
+
+            // Conservamos las últimas 60 mediciones.
+            if self.historial_memoria.len() > 60 {
+                self.historial_memoria.remove(0);
+            }
+
             self.uso_cpu_actual = uso_cpu;
 
             // Guardamos la medición actual en el historial.
@@ -89,6 +109,8 @@ impl eframe::App for AplicacionPulzeh {
             estado_cpu,
             estado_memoria,
             estado_general,
+            &self.historial_cpu,
+            &self.historial_memoria,
         );
 
         contexto.request_repaint_after(std::time::Duration::from_secs(1));

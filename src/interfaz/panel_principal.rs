@@ -1,6 +1,8 @@
 use eframe::egui;
+use egui_plot::{Line, Plot, PlotPoints};
 
 /// Dibuja el panel principal de PULZEH.
+#[allow(clippy::too_many_arguments)]
 pub fn mostrar(
     contexto: &egui::Context,
     cpu_sin_datos: bool,
@@ -12,7 +14,53 @@ pub fn mostrar(
     estado_cpu: &str,
     estado_memoria: &str,
     estado_general: &str,
+    historial_cpu: &[f32],
+    historial_memoria: &[f32],
 ) {
+    egui::SidePanel::left("barra_lateral")
+        .resizable(false)
+        .default_width(190.0)
+        .show(contexto, |ui| {
+            ui.add_space(12.0);
+            ui.heading(egui::RichText::new("PULZEH").color(super::estilos::color_acento()));
+            ui.label(
+                egui::RichText::new("SYSTEM PERFORMANCE MONITOR")
+                    .small()
+                    .color(super::estilos::color_secundario()),
+            );
+            ui.add_space(24.0);
+
+            ui.label(
+                egui::RichText::new("NAVEGACIÓN")
+                    .small()
+                    .color(super::estilos::color_secundario()),
+            );
+            ui.add_space(6.0);
+            ui.colored_label(super::estilos::color_acento(), "●  Dashboard");
+            ui.add_space(8.0);
+            ui.label("○  Hardware");
+            ui.label(
+                egui::RichText::new("   Próximamente")
+                    .small()
+                    .color(super::estilos::color_secundario()),
+            );
+            ui.add_space(8.0);
+            ui.label("○  Procesos");
+            ui.label(
+                egui::RichText::new("   Próximamente")
+                    .small()
+                    .color(super::estilos::color_secundario()),
+            );
+
+            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                ui.label(
+                    egui::RichText::new("Versión 0.2.0")
+                        .small()
+                        .color(super::estilos::color_secundario()),
+                );
+            });
+        });
+
     egui::CentralPanel::default().show(contexto, |ui| {
         ui.heading("PULZEH");
         ui.label(
@@ -81,6 +129,50 @@ pub fn mostrar(
                     porcentaje_memoria / 100.0,
                     color_memoria,
                 );
+            });
+        });
+
+        ui.add_space(20.0);
+        ui.heading("Historial de rendimiento");
+
+        let puntos_cpu: PlotPoints = historial_cpu
+            .iter()
+            .enumerate()
+            .map(|(indice, valor)| [indice as f64, *valor as f64])
+            .collect();
+        let puntos_memoria: PlotPoints = historial_memoria
+            .iter()
+            .enumerate()
+            .map(|(indice, valor)| [indice as f64, *valor as f64])
+            .collect();
+
+        ui.columns(2, |columnas| {
+            columnas[0].group(|ui| {
+                ui.label("CPU");
+                Plot::new("historial_cpu")
+                    .height(180.0)
+                    .include_y(0.0)
+                    .include_y(100.0)
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(
+                            Line::new("CPU", puntos_cpu)
+                                .color(super::estilos::color_acento()),
+                        );
+                    });
+            });
+
+            columnas[1].group(|ui| {
+                ui.label("Memoria RAM");
+                Plot::new("historial_memoria")
+                    .height(180.0)
+                    .include_y(0.0)
+                    .include_y(100.0)
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(
+                            Line::new("RAM", puntos_memoria)
+                                .color(super::estilos::color_memoria()),
+                        );
+                    });
             });
         });
     });

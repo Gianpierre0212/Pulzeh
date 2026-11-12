@@ -7,6 +7,7 @@ name = "PULZEH"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "egui_plot",
  "sysinfo",
 ]
 
@@ -889,6 +890,17 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "winit",
+]
+
+[[package]]
+name = "egui_plot"
+version = "0.34.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67fc9b427a837264e55381a5cade6e28fe83ac5b165a61b9c888548c732a9c95"
+dependencies = [
+ "ahash",
+ "egui",
+ "emath",
 ]
 
 [[package]]

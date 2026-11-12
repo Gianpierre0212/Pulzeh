@@ -1,6 +1,7 @@
 use eframe::egui;
 use std::time::Instant;
 use sysinfo::System;
+mod interfaz;
 
 struct AplicacionPulzeh {
     sistema: System,
@@ -30,6 +31,8 @@ impl AplicacionPulzeh {
 
 impl eframe::App for AplicacionPulzeh {
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        // Aplicamos el estilo visual definido en el módulo de interfaz.
+        interfaz::estilos::aplicar(context);
         // Solo actualizamos las mediciones una vez por segundo.
         if self.ultima_actualizacion.elapsed().as_secs() >= 1 {
             self.sistema.refresh_cpu_usage();

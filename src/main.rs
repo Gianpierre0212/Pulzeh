@@ -73,42 +73,15 @@ impl eframe::App for AplicacionPulzeh {
             0.0
         };
 
-        egui::CentralPanel::default().show(context, |ui| {
-            ui.heading("PULZEH");
-            ui.label("MONITOR DE RENDIMIENTO DEL SISTEMA");
-            ui.add_space(20.0);
-
-            ui.group(|ui| {
-                ui.heading("CPU");
-               if self.historial_cpu.is_empty() {
-    ui.label("Esperando primera medición...");
-} else {
-    ui.label(format!("Uso actual: {:.1}%", self.uso_cpu_actual));
-    ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
-
-    // La barra representa el uso instantáneo actual.
-    ui.add(
-    egui::ProgressBar::new(self.uso_cpu_actual / 100.0)
-        .fill(interfaz::estilos::color_acento())
-        .show_percentage(),
-);
-}
-            });
-
-            ui.add_space(12.0);
-
-            ui.group(|ui| {
-                ui.heading("Memoria RAM");
-                ui.label(format!(
-                    "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada_gb:.2} / {memoria_total_gb:.2} GB)"
-                ));
-               ui.add(
-    egui::ProgressBar::new(porcentaje_memoria / 100.0)
-                        .fill(interfaz::estilos::color_memoria())
-        .show_percentage(),
-);
-            });
-        });
+        interfaz::panel_principal::mostrar(
+            context,
+            self.historial_cpu.is_empty(),
+            self.uso_cpu_actual,
+            promedio_cpu,
+            porcentaje_memoria,
+            memoria_usada_gb,
+            memoria_total_gb,
+        );
 
         context.request_repaint_after(std::time::Duration::from_secs(1));
     }

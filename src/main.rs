@@ -77,14 +77,18 @@ impl eframe::App for AplicacionPulzeh {
 
             ui.group(|ui| {
                 ui.heading("CPU");
-                ui.label(format!("Uso actual: {:.1}%", self.uso_cpu_actual));
-ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
+               if self.historial_cpu.is_empty() {
+    ui.label("Esperando primera medición...");
+} else {
+    ui.label(format!("Uso actual: {:.1}%", self.uso_cpu_actual));
+    ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
 
-// La barra representa el uso instantáneo actual.
-ui.add(
-    egui::ProgressBar::new(self.uso_cpu_actual / 100.0)
-        .show_percentage(),
-);
+    // La barra representa el uso instantáneo actual.
+    ui.add(
+        egui::ProgressBar::new(self.uso_cpu_actual / 100.0)
+            .show_percentage(),
+    );
+}
             });
 
             ui.add_space(12.0);

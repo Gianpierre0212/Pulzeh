@@ -88,9 +88,10 @@ impl eframe::App for AplicacionPulzeh {
 
     // La barra representa el uso instantáneo actual.
     ui.add(
-        egui::ProgressBar::new(self.uso_cpu_actual / 100.0)
-            .show_percentage(),
-    );
+    egui::ProgressBar::new(self.uso_cpu_actual / 100.0)
+        .fill(interfaz::estilos::color_acento())
+        .show_percentage(),
+);
 }
             });
 
@@ -101,7 +102,11 @@ impl eframe::App for AplicacionPulzeh {
                 ui.label(format!(
                     "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada_gb:.2} / {memoria_total_gb:.2} GB)"
                 ));
-                ui.add(egui::ProgressBar::new(porcentaje_memoria / 100.0).show_percentage());
+               ui.add(
+    egui::ProgressBar::new(porcentaje_memoria / 100.0)
+                        .fill(interfaz::estilos::color_memoria())
+        .show_percentage(),
+);
             });
         });
 

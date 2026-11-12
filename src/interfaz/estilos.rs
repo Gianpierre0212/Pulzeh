@@ -15,3 +15,15 @@ pub fn aplicar(contexto: &egui::Context) {
 
     contexto.set_visuals(visuales);
 }
+
+/// Devuelve el color de acento principal de PULZEH.
+pub fn color_acento() -> egui::Color32 {
+    // Color definido por la identidad visual: #42D9D0.
+    egui::Color32::from_rgb(66, 217, 208)
+}
+
+/// Devuelve el color utilizado para representar la memoria RAM.
+pub fn color_memoria() -> egui::Color32 {
+    // Azul diferenciador para separar visualmente la RAM de la CPU.
+    egui::Color32::from_rgb(76, 145, 211)
+}

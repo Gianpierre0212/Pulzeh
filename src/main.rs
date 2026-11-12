@@ -1,5 +1,6 @@
 mod aplicacion;
 mod interfaz;
+mod modelos;
 mod sistema;
 
 use aplicacion::AplicacionPulzeh;

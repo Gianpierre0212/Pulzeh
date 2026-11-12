@@ -2,10 +2,12 @@ use eframe::egui;
 use std::time::Instant;
 use sysinfo::System;
 
-use crate::{interfaz, sistema};
+use crate::{interfaz, modelos, sistema};
 
 pub struct AplicacionPulzeh {
     sistema: System,
+    // Indica la pantalla que está actualmente activa.
+    vista_actual: modelos::Vista,
 
     // Guarda las últimas mediciones de CPU para calcular un promedio.
     historial_cpu: Vec<f32>,
@@ -30,6 +32,8 @@ impl AplicacionPulzeh {
 
         Self {
             sistema,
+            // Indica la pantalla que está actualmente activa.
+            vista_actual: modelos::Vista::Dashboard,
             historial_cpu: Vec::new(),
             historial_memoria: Vec::new(),
             porcentaje_memoria_actual: 0.0,
@@ -101,7 +105,7 @@ impl eframe::App for AplicacionPulzeh {
         let estado_memoria = interfaz::componentes::estado_recurso(porcentaje_memoria);
         let estado_general = interfaz::componentes::estado_general(estado_cpu, estado_memoria);
 
-        interfaz::panel_principal::mostrar(
+        if let Some(nueva_vista) = interfaz::panel_principal::mostrar(
             contexto,
             self.historial_cpu.is_empty(),
             self.uso_cpu_actual,
@@ -116,7 +120,10 @@ impl eframe::App for AplicacionPulzeh {
             &self.historial_memoria,
             &nombre_sistema,
             &version_sistema,
-        );
+            self.vista_actual,
+        ) {
+            self.vista_actual = nueva_vista;
+        }
 
         contexto.request_repaint_after(std::time::Duration::from_secs(1));
     }

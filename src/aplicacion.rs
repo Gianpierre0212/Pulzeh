@@ -70,6 +70,14 @@ impl eframe::App for AplicacionPulzeh {
         let memoria_total_gb = memoria_total as f32 / 1_073_741_824.0;
         let memoria_usada_gb = memoria_usada as f32 / 1_073_741_824.0;
 
+        let estado_cpu = if self.historial_cpu.is_empty() {
+            "Esperando"
+        } else {
+            interfaz::componentes::estado_recurso(self.uso_cpu_actual)
+        };
+        let estado_memoria = interfaz::componentes::estado_recurso(porcentaje_memoria);
+        let estado_general = interfaz::componentes::estado_general(estado_cpu, estado_memoria);
+
         interfaz::panel_principal::mostrar(
             contexto,
             self.historial_cpu.is_empty(),
@@ -78,6 +86,9 @@ impl eframe::App for AplicacionPulzeh {
             porcentaje_memoria,
             memoria_usada_gb,
             memoria_total_gb,
+            estado_cpu,
+            estado_memoria,
+            estado_general,
         );
 
         contexto.request_repaint_after(std::time::Duration::from_secs(1));

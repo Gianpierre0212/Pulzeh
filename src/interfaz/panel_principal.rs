@@ -9,6 +9,9 @@ pub fn mostrar(
     porcentaje_memoria: f32,
     memoria_usada_gb: f32,
     memoria_total_gb: f32,
+    estado_cpu: &str,
+    estado_memoria: &str,
+    estado_general: &str,
 ) {
     egui::CentralPanel::default().show(contexto, |ui| {
         ui.heading("PULZEH");
@@ -22,6 +25,10 @@ pub fn mostrar(
                 .color(super::estilos::color_secundario()),
         );
         ui.separator();
+        ui.label(
+            egui::RichText::new(format!("Estado general: {estado_general}"))
+                .color(super::componentes::color_nombre_estado(estado_general)),
+        );
         ui.add_space(20.0);
 
         ui.columns(2, |columnas| {
@@ -35,20 +42,19 @@ pub fn mostrar(
                 } else {
                     ui.label(format!("Uso actual: {uso_cpu_actual:.1}%"));
                     ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
-                    let estado_cpu = super::componentes::estado_recurso(uso_cpu_actual);
-let color_cpu = super::componentes::color_estado(uso_cpu_actual);
+                    let color_cpu = super::componentes::color_estado(uso_cpu_actual);
 
-ui.label(
-    egui::RichText::new(format!("Estado: {estado_cpu}"))
-        .color(color_cpu),
-);
+                    ui.label(
+                        egui::RichText::new(format!("Estado: {estado_cpu}"))
+                            .color(color_cpu),
+                    );
 
                     // La barra representa el uso instantáneo actual.
-                   super::componentes::barra_progreso(
-    ui,
-    uso_cpu_actual / 100.0,
-    color_cpu,
-);
+                    super::componentes::barra_progreso(
+                        ui,
+                        uso_cpu_actual / 100.0,
+                        color_cpu,
+                    );
                 }
             });
 
@@ -62,8 +68,6 @@ ui.label(
                     "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada_gb:.2} / {memoria_total_gb:.2} GB)"
                 ));
 
-                let estado_memoria =
-                    super::componentes::estado_recurso(porcentaje_memoria);
                 let color_memoria =
                     super::componentes::color_estado(porcentaje_memoria);
 

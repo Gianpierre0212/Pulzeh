@@ -26,3 +26,26 @@ pub fn color_estado(porcentaje: f32) -> egui::Color32 {
         egui::Color32::from_rgb(220, 80, 80)
     }
 }
+
+/// Combina los estados de CPU y memoria en un estado general.
+pub fn estado_general(estado_cpu: &str, estado_memoria: &str) -> &'static str {
+    if estado_cpu == "Esperando" {
+        "Esperando"
+    } else if estado_cpu == "Alto" || estado_memoria == "Alto" {
+        "Alto"
+    } else if estado_cpu == "Atención" || estado_memoria == "Atención" {
+        "Atención"
+    } else {
+        "Normal"
+    }
+}
+
+/// Devuelve el color correspondiente a un estado general.
+pub fn color_nombre_estado(estado: &str) -> egui::Color32 {
+    match estado {
+        "Alto" => egui::Color32::from_rgb(220, 80, 80),
+        "Atención" => egui::Color32::from_rgb(235, 190, 70),
+        "Normal" => egui::Color32::from_rgb(66, 217, 208),
+        _ => egui::Color32::from_rgb(137, 149, 163),
+    }
+}

@@ -1,24 +1,59 @@
 use eframe::egui;
+use std::time::Instant;
 use sysinfo::System;
 
 struct AplicacionPulzeh {
     sistema: System,
+
+    // Guarda las últimas mediciones de CPU para calcular un promedio.
+    historial_cpu: Vec<f32>,
+
+    // Guarda el momento de la última actualización del sistema.
+    ultima_actualizacion: Instant,
 }
 
 impl AplicacionPulzeh {
     fn new() -> Self {
         let mut sistema = System::new_all();
         sistema.refresh_all();
-        Self { sistema }
+
+        Self {
+            sistema,
+            historial_cpu: Vec::new(),
+            ultima_actualizacion: Instant::now(),
+        }
     }
 }
 
 impl eframe::App for AplicacionPulzeh {
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
-        self.sistema.refresh_cpu_usage();
-        self.sistema.refresh_memory();
+        // Solo actualizamos las mediciones una vez por segundo.
+        if self.ultima_actualizacion.elapsed().as_secs() >= 1 {
+            self.sistema.refresh_cpu_usage();
+            self.sistema.refresh_memory();
 
-        let uso_cpu = self.sistema.global_cpu_usage();
+            let uso_cpu = self.sistema.global_cpu_usage();
+
+            // Guardamos la medición actual en el historial.
+            self.historial_cpu.push(uso_cpu);
+
+            // Conservamos solamente las últimas 10 mediciones.
+            if self.historial_cpu.len() > 10 {
+                self.historial_cpu.remove(0);
+            }
+
+            // Reiniciamos el reloj para la siguiente actualización.
+            self.ultima_actualizacion = Instant::now();
+        }
+
+        // Calculamos el promedio usando las mediciones guardadas.
+        let suma_cpu: f32 = self.historial_cpu.iter().sum();
+
+        let promedio_cpu = if self.historial_cpu.is_empty() {
+            0.0
+        } else {
+            suma_cpu / self.historial_cpu.len() as f32
+        };
         let memoria_total = self.sistema.total_memory();
         let memoria_usada = self.sistema.used_memory();
         let porcentaje_memoria = if memoria_total > 0 {
@@ -34,8 +69,8 @@ impl eframe::App for AplicacionPulzeh {
 
             ui.group(|ui| {
                 ui.heading("CPU");
-                ui.label(format!("Uso actual: {uso_cpu:.1}%"));
-                ui.add(egui::ProgressBar::new(uso_cpu / 100.0).show_percentage());
+                ui.label(format!("Promedio de CPU: {promedio_cpu:.1}%"));
+                ui.add(egui::ProgressBar::new(promedio_cpu / 100.0).show_percentage());
             });
 
             ui.add_space(12.0);

@@ -16,43 +16,49 @@ pub fn mostrar(
             egui::RichText::new("MONITOR DE RENDIMIENTO DEL SISTEMA")
                 .color(super::estilos::color_secundario()),
         );
+        ui.label(
+            egui::RichText::new("Actualización automática cada segundo")
+                .small()
+                .color(super::estilos::color_secundario()),
+        );
+        ui.separator();
         ui.add_space(20.0);
 
-        ui.group(|ui| {
-            ui.heading(
-                egui::RichText::new("CPU").color(super::estilos::color_acento()),
-            );
+        ui.columns(2, |columnas| {
+            columnas[0].group(|ui| {
+                ui.heading(
+                    egui::RichText::new("CPU").color(super::estilos::color_acento()),
+                );
 
-            if cpu_sin_datos {
-                ui.label("Esperando primera medición...");
-            } else {
-                ui.label(format!("Uso actual: {uso_cpu_actual:.1}%"));
-                ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
+                if cpu_sin_datos {
+                    ui.label("Esperando primera medición...");
+                } else {
+                    ui.label(format!("Uso actual: {uso_cpu_actual:.1}%"));
+                    ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
 
-                // La barra representa el uso instantáneo actual.
+                    // La barra representa el uso instantáneo actual.
+                    super::componentes::barra_progreso(
+                        ui,
+                        uso_cpu_actual / 100.0,
+                        super::estilos::color_acento(),
+                    );
+                }
+            });
+
+            columnas[1].group(|ui| {
+                ui.heading(
+                    egui::RichText::new("Memoria RAM")
+                        .color(super::estilos::color_memoria()),
+                );
+                ui.label(format!(
+                    "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada_gb:.2} / {memoria_total_gb:.2} GB)"
+                ));
                 super::componentes::barra_progreso(
                     ui,
-                    uso_cpu_actual / 100.0,
-                    super::estilos::color_acento(),
+                    porcentaje_memoria / 100.0,
+                    super::estilos::color_memoria(),
                 );
-            }
-        });
-
-        ui.add_space(12.0);
-
-        ui.group(|ui| {
-            ui.heading(
-                egui::RichText::new("Memoria RAM")
-                    .color(super::estilos::color_memoria()),
-            );
-            ui.label(format!(
-                "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada_gb:.2} / {memoria_total_gb:.2} GB)"
-            ));
-            super::componentes::barra_progreso(
-                ui,
-                porcentaje_memoria / 100.0,
-                super::estilos::color_memoria(),
-            );
+            });
         });
     });
 }

@@ -35,13 +35,20 @@ pub fn mostrar(
                 } else {
                     ui.label(format!("Uso actual: {uso_cpu_actual:.1}%"));
                     ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
+                    let estado_cpu = super::componentes::estado_recurso(uso_cpu_actual);
+let color_cpu = super::componentes::color_estado(uso_cpu_actual);
+
+ui.label(
+    egui::RichText::new(format!("Estado: {estado_cpu}"))
+        .color(color_cpu),
+);
 
                     // La barra representa el uso instantáneo actual.
-                    super::componentes::barra_progreso(
-                        ui,
-                        uso_cpu_actual / 100.0,
-                        super::estilos::color_acento(),
-                    );
+                   super::componentes::barra_progreso(
+    ui,
+    uso_cpu_actual / 100.0,
+    color_cpu,
+);
                 }
             });
 
@@ -50,13 +57,25 @@ pub fn mostrar(
                     egui::RichText::new("Memoria RAM")
                         .color(super::estilos::color_memoria()),
                 );
+
                 ui.label(format!(
                     "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada_gb:.2} / {memoria_total_gb:.2} GB)"
                 ));
+
+                let estado_memoria =
+                    super::componentes::estado_recurso(porcentaje_memoria);
+                let color_memoria =
+                    super::componentes::color_estado(porcentaje_memoria);
+
+                ui.label(
+                    egui::RichText::new(format!("Estado: {estado_memoria}"))
+                        .color(color_memoria),
+                );
+
                 super::componentes::barra_progreso(
                     ui,
                     porcentaje_memoria / 100.0,
-                    super::estilos::color_memoria(),
+                    color_memoria,
                 );
             });
         });

@@ -16,6 +16,8 @@ pub fn mostrar(
     estado_general: &str,
     historial_cpu: &[f32],
     historial_memoria: &[f32],
+    nombre_sistema: &str,
+    version_sistema: &str,
 ) {
     egui::SidePanel::left("barra_lateral")
         .resizable(false)
@@ -78,6 +80,14 @@ pub fn mostrar(
                 .color(super::componentes::color_nombre_estado(estado_general)),
         );
         ui.add_space(20.0);
+
+        ui.group(|ui| {
+            ui.heading("Información del equipo");
+            ui.label(format!("Sistema operativo: {nombre_sistema}"));
+            ui.label(format!("Versión: {version_sistema}"));
+        });
+
+        ui.add_space(16.0);
 
         ui.columns(2, |columnas| {
             columnas[0].group(|ui| {

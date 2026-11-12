@@ -90,6 +90,9 @@ impl eframe::App for AplicacionPulzeh {
         let memoria_total_gb = memoria_total as f32 / 1_073_741_824.0;
         let memoria_usada_gb = memoria_usada as f32 / 1_073_741_824.0;
 
+        let nombre_sistema = System::name().unwrap_or_else(|| "No disponible".to_string());
+        let version_sistema = System::os_version().unwrap_or_else(|| "No disponible".to_string());
+
         let estado_cpu = if self.historial_cpu.is_empty() {
             "Esperando"
         } else {
@@ -111,6 +114,8 @@ impl eframe::App for AplicacionPulzeh {
             estado_general,
             &self.historial_cpu,
             &self.historial_memoria,
+            &nombre_sistema,
+            &version_sistema,
         );
 
         contexto.request_repaint_after(std::time::Duration::from_secs(1));

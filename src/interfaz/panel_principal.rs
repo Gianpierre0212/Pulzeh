@@ -12,11 +12,16 @@ pub fn mostrar(
 ) {
     egui::CentralPanel::default().show(contexto, |ui| {
         ui.heading("PULZEH");
-        ui.label("MONITOR DE RENDIMIENTO DEL SISTEMA");
+        ui.label(
+            egui::RichText::new("MONITOR DE RENDIMIENTO DEL SISTEMA")
+                .color(super::estilos::color_secundario()),
+        );
         ui.add_space(20.0);
 
         ui.group(|ui| {
-            ui.heading("CPU");
+            ui.heading(
+                egui::RichText::new("CPU").color(super::estilos::color_acento()),
+            );
 
             if cpu_sin_datos {
                 ui.label("Esperando primera medición...");
@@ -25,10 +30,10 @@ pub fn mostrar(
                 ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
 
                 // La barra representa el uso instantáneo actual.
-                ui.add(
-                    egui::ProgressBar::new(uso_cpu_actual / 100.0)
-                        .fill(super::estilos::color_acento())
-                        .show_percentage(),
+                super::componentes::barra_progreso(
+                    ui,
+                    uso_cpu_actual / 100.0,
+                    super::estilos::color_acento(),
                 );
             }
         });
@@ -36,14 +41,17 @@ pub fn mostrar(
         ui.add_space(12.0);
 
         ui.group(|ui| {
-            ui.heading("Memoria RAM");
+            ui.heading(
+                egui::RichText::new("Memoria RAM")
+                    .color(super::estilos::color_memoria()),
+            );
             ui.label(format!(
                 "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada_gb:.2} / {memoria_total_gb:.2} GB)"
             ));
-            ui.add(
-                egui::ProgressBar::new(porcentaje_memoria / 100.0)
-                    .fill(super::estilos::color_memoria())
-                    .show_percentage(),
+            super::componentes::barra_progreso(
+                ui,
+                porcentaje_memoria / 100.0,
+                super::estilos::color_memoria(),
             );
         });
     });

@@ -27,3 +27,9 @@ pub fn color_memoria() -> egui::Color32 {
     // Azul diferenciador para separar visualmente la RAM de la CPU.
     egui::Color32::from_rgb(76, 145, 211)
 }
+
+/// Devuelve el color secundario utilizado para textos informativos.
+pub fn color_secundario() -> egui::Color32 {
+    // Color definido por la identidad visual: #8995A3.
+    egui::Color32::from_rgb(137, 149, 163)
+}

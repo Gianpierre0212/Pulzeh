@@ -7,6 +7,8 @@ struct AplicacionPulzeh {
 
     // Guarda las últimas mediciones de CPU para calcular un promedio.
     historial_cpu: Vec<f32>,
+    // Guarda la última medición instantánea de CPU.
+    uso_cpu_actual: f32,
 
     // Guarda el momento de la última actualización del sistema.
     ultima_actualizacion: Instant,
@@ -20,6 +22,7 @@ impl AplicacionPulzeh {
         Self {
             sistema,
             historial_cpu: Vec::new(),
+            uso_cpu_actual: 0.0,
             ultima_actualizacion: Instant::now(),
         }
     }
@@ -33,6 +36,7 @@ impl eframe::App for AplicacionPulzeh {
             self.sistema.refresh_memory();
 
             let uso_cpu = self.sistema.global_cpu_usage();
+            self.uso_cpu_actual = uso_cpu;
 
             // Guardamos la medición actual en el historial.
             self.historial_cpu.push(uso_cpu);
@@ -73,8 +77,14 @@ impl eframe::App for AplicacionPulzeh {
 
             ui.group(|ui| {
                 ui.heading("CPU");
-                ui.label(format!("Promedio de CPU: {promedio_cpu:.1}%"));
-                ui.add(egui::ProgressBar::new(promedio_cpu / 100.0).show_percentage());
+                ui.label(format!("Uso actual: {:.1}%", self.uso_cpu_actual));
+ui.label(format!("Promedio reciente: {promedio_cpu:.1}%"));
+
+// La barra representa el uso instantáneo actual.
+ui.add(
+    egui::ProgressBar::new(self.uso_cpu_actual / 100.0)
+        .show_percentage(),
+);
             });
 
             ui.add_space(12.0);

@@ -2,6 +2,7 @@ use eframe::egui;
 use std::time::Instant;
 use sysinfo::System;
 mod interfaz;
+mod sistema;
 
 struct AplicacionPulzeh {
     sistema: System,
@@ -35,10 +36,8 @@ impl eframe::App for AplicacionPulzeh {
         interfaz::estilos::aplicar(context);
         // Solo actualizamos las mediciones una vez por segundo.
         if self.ultima_actualizacion.elapsed().as_secs() >= 1 {
-            self.sistema.refresh_cpu_usage();
-            self.sistema.refresh_memory();
-
-            let uso_cpu = self.sistema.global_cpu_usage();
+            let uso_cpu = sistema::cpu::actualizar(&mut self.sistema);
+            sistema::memoria::actualizar(&mut self.sistema);
             self.uso_cpu_actual = uso_cpu;
 
             // Guardamos la medición actual en el historial.
@@ -61,17 +60,12 @@ impl eframe::App for AplicacionPulzeh {
         } else {
             suma_cpu / self.historial_cpu.len() as f32
         };
-        let memoria_total = self.sistema.total_memory();
-        let memoria_usada = self.sistema.used_memory();
+        let (memoria_usada, memoria_total, porcentaje_memoria) =
+            sistema::memoria::leer(&self.sistema);
         // sysinfo entrega la memoria en bytes.
         // Convertimos los valores a gigabytes para mostrarlos correctamente.
         let memoria_total_gb = memoria_total as f32 / 1_073_741_824.0;
         let memoria_usada_gb = memoria_usada as f32 / 1_073_741_824.0;
-        let porcentaje_memoria = if memoria_total > 0 {
-            memoria_usada as f32 / memoria_total as f32 * 100.0
-        } else {
-            0.0
-        };
 
         interfaz::panel_principal::mostrar(
             context,

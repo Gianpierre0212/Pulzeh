@@ -56,6 +56,10 @@ impl eframe::App for AplicacionPulzeh {
         };
         let memoria_total = self.sistema.total_memory();
         let memoria_usada = self.sistema.used_memory();
+        // sysinfo entrega la memoria en bytes.
+        // Convertimos los valores a gigabytes para mostrarlos correctamente.
+        let memoria_total_gb = memoria_total as f32 / 1_073_741_824.0;
+        let memoria_usada_gb = memoria_usada as f32 / 1_073_741_824.0;
         let porcentaje_memoria = if memoria_total > 0 {
             memoria_usada as f32 / memoria_total as f32 * 100.0
         } else {
@@ -78,7 +82,7 @@ impl eframe::App for AplicacionPulzeh {
             ui.group(|ui| {
                 ui.heading("Memoria RAM");
                 ui.label(format!(
-                    "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada} / {memoria_total} KB)"
+                    "Uso actual: {porcentaje_memoria:.1}% ({memoria_usada_gb:.2} / {memoria_total_gb:.2} GB)"
                 ));
                 ui.add(egui::ProgressBar::new(porcentaje_memoria / 100.0).show_percentage());
             });

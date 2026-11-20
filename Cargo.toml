@@ -7,3 +7,11 @@ edition = "2024"
 eframe = "0.33"
 egui_plot = "0.34"
 sysinfo = "0.37"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
+] }

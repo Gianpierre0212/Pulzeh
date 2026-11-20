@@ -32,7 +32,9 @@ impl AplicacionPulzeh {
         let mut sistema = System::new_all();
         sistema.refresh_all();
         let redes = Networks::new_with_refreshed_list();
-        let estadisticas_red = sistema::red::leer(&redes);
+        let mut estadisticas_red = sistema::red::leer(&redes);
+        sistema::red::enriquecer_desde_windows(&mut estadisticas_red);
+        estadisticas_red.conexiones_tcp = sistema::red::leer_conexiones_por_aplicacion(&sistema);
 
         Self {
             sistema,
@@ -59,7 +61,10 @@ impl eframe::App for AplicacionPulzeh {
             let uso_cpu = sistema::cpu::actualizar(&mut self.sistema);
             sistema::memoria::actualizar(&mut self.sistema);
             sistema::red::actualizar(&mut self.redes);
-            let lectura_red = sistema::red::leer(&self.redes);
+            let mut lectura_red = sistema::red::leer(&self.redes);
+            sistema::red::enriquecer_desde_windows(&mut lectura_red);
+            lectura_red.conexiones_tcp =
+                sistema::red::leer_conexiones_por_aplicacion(&self.sistema);
             let tiempo_transcurrido = self.ultima_actualizacion.elapsed().as_secs_f64();
             let (descarga, subida) = sistema::red::calcular_velocidades(
                 &self.estadisticas_red,

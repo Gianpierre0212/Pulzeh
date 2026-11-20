@@ -183,11 +183,21 @@ fn mostrar_tarjeta_red(ui: &mut egui::Ui, estadisticas: &EstadisticasRed) {
             for interfaz in &estadisticas.detalles_interfaces {
                 ui.collapsing(&interfaz.nombre, |ui| {
                     ui.label(format!("Tipo: {}", interfaz.tipo));
+                    ui.label(format!("Estado: {}", interfaz.estado));
                     ui.label(if interfaz.activa {
                         "Actividad reciente: detectada"
                     } else {
                         "Actividad reciente: no detectada"
                     });
+                    if interfaz.velocidad_bajada_bps > 0 || interfaz.velocidad_subida_bps > 0 {
+                        ui.label(format!(
+                            "Velocidad de enlace: ↓ {} / ↑ {}",
+                            formatear_bits_por_segundo(interfaz.velocidad_bajada_bps),
+                            formatear_bits_por_segundo(interfaz.velocidad_subida_bps),
+                        ));
+                    } else {
+                        ui.label("Velocidad de enlace: no disponible");
+                    }
                     ui.label(format!(
                         "Recibidos: {}",
                         formatear_bytes(interfaz.recibidos)
@@ -203,7 +213,44 @@ fn mostrar_tarjeta_red(ui: &mut egui::Ui, estadisticas: &EstadisticasRed) {
         }
 
         ui.separator();
-        ui.label("Uso por aplicación: requiere integración adicional con Windows.");
+        ui.label("Conexiones TCP IPv4 por aplicación (no representa bytes transferidos):");
+        if estadisticas.conexiones_tcp.is_empty() {
+            ui.label("No se detectaron conexiones TCP IPv4 activas.");
+        } else {
+            let mut conexiones_por_proceso = std::collections::BTreeMap::new();
+            for conexion in &estadisticas.conexiones_tcp {
+                conexiones_por_proceso
+                    .entry((conexion.pid, conexion.nombre_proceso.as_str()))
+                    .or_insert_with(Vec::new)
+                    .push(conexion);
+            }
+
+            egui::ScrollArea::vertical()
+                .id_salt("lista_conexiones_tcp")
+                .max_height(240.0)
+                .show(ui, |ui| {
+                    for ((pid, nombre), conexiones) in conexiones_por_proceso {
+                        ui.push_id(pid, |ui| {
+                            ui.collapsing(
+                                format!("{nombre} · PID {pid} · {} conexiones", conexiones.len()),
+                                |ui| {
+                                    for (indice, conexion) in conexiones.iter().enumerate() {
+                                        ui.push_id(indice, |ui| {
+                                            ui.label(format!(
+                                                "{} · {}:{}",
+                                                conexion.estado,
+                                                conexion.direccion_remota,
+                                                conexion.puerto_remoto
+                                            ));
+                                        });
+                                    }
+                                    ui.label("La tabla TCP no informa los bytes transferidos por aplicación.");
+                                },
+                            );
+                        });
+                    }
+                });
+        }
     });
 }
 
@@ -215,4 +262,9 @@ fn formatear_bytes(bytes: u64) -> String {
 fn formatear_bytes_por_segundo(bytes_por_segundo: f64) -> String {
     const BYTES_POR_MEGABYTE: f64 = 1_048_576.0;
     format!("{:.2} MB", bytes_por_segundo / BYTES_POR_MEGABYTE)
+}
+
+fn formatear_bits_por_segundo(bits_por_segundo: u64) -> String {
+    const BITS_POR_MEGABIT: f64 = 1_000_000.0;
+    format!("{:.1} Mbps", bits_por_segundo as f64 / BITS_POR_MEGABIT)
 }

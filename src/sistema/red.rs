@@ -75,7 +75,7 @@ pub fn leer(redes: &Networks) -> EstadisticasRed {
     }
 }
 
-/// Consulta conexiones TCP IPv4 y obtiene el PID propietario.
+/// Consulta conexiones TCP IPv4 e IPv6 y obtiene el PID propietario.
 /// Esto cuenta conexiones; no mide bytes transferidos por aplicación.
 #[cfg(windows)]
 pub fn leer_conexiones_por_aplicacion(sistema: &sysinfo::System) -> Vec<ConexionAplicacion> {
@@ -83,6 +83,7 @@ pub fn leer_conexiones_por_aplicacion(sistema: &sysinfo::System) -> Vec<Conexion
 
     let mut conexiones = Vec::new();
     leer_tabla_tcp_ipv4(&mut conexiones);
+    leer_tabla_tcp_ipv6(&mut conexiones);
 
     let mut por_proceso: HashMap<(u32, String), Vec<ConexionAplicacion>> = HashMap::new();
     for mut conexion in conexiones {
@@ -98,6 +99,66 @@ pub fn leer_conexiones_por_aplicacion(sistema: &sysinfo::System) -> Vec<Conexion
     let mut salida: Vec<_> = por_proceso.into_values().flatten().collect();
     salida.sort_by(|a, b| a.nombre_proceso.cmp(&b.nombre_proceso));
     salida
+}
+
+#[cfg(windows)]
+fn leer_tabla_tcp_ipv6(salida: &mut Vec<ConexionAplicacion>) {
+    use std::{ffi::c_void, mem::size_of, net::Ipv6Addr, slice};
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        GetExtendedTcpTable, MIB_TCP_STATE_ESTAB, MIB_TCP6ROW_OWNER_PID, MIB_TCP6TABLE_OWNER_PID,
+        TCP_TABLE_OWNER_PID_CONNECTIONS,
+    };
+
+    let mut bytes_necesarios = 0u32;
+    let familia = windows_sys::Win32::Networking::WinSock::AF_INET6 as u32;
+    let resultado = unsafe {
+        GetExtendedTcpTable(
+            std::ptr::null_mut(),
+            &mut bytes_necesarios,
+            0,
+            familia,
+            TCP_TABLE_OWNER_PID_CONNECTIONS,
+            0,
+        )
+    };
+    if bytes_necesarios == 0 || resultado == 0 {
+        return;
+    }
+
+    let mut buffer = vec![0u64; (bytes_necesarios as usize).div_ceil(size_of::<u64>())];
+    let resultado = unsafe {
+        GetExtendedTcpTable(
+            buffer.as_mut_ptr().cast::<c_void>(),
+            &mut bytes_necesarios,
+            0,
+            familia,
+            TCP_TABLE_OWNER_PID_CONNECTIONS,
+            0,
+        )
+    };
+    if resultado != 0 {
+        return;
+    }
+
+    let tabla = buffer.as_ptr().cast::<MIB_TCP6TABLE_OWNER_PID>();
+    let filas = unsafe {
+        let cantidad = (*tabla).dwNumEntries as usize;
+        let inicio: *const MIB_TCP6ROW_OWNER_PID = std::ptr::addr_of!((*tabla).table).cast();
+        slice::from_raw_parts(inicio, cantidad)
+    };
+    for fila in filas {
+        salida.push(ConexionAplicacion {
+            pid: fila.dwOwningPid,
+            nombre_proceso: "Proceso no disponible".to_string(),
+            estado: if fila.dwState as i32 == MIB_TCP_STATE_ESTAB {
+                "Establecida"
+            } else {
+                "Conexión TCP"
+            },
+            direccion_remota: Ipv6Addr::from(fila.ucRemoteAddr).to_string(),
+            puerto_remoto: u16::from_be(fila.dwRemotePort as u16),
+        });
+    }
 }
 
 #[cfg(windows)]

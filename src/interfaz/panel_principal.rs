@@ -213,9 +213,9 @@ fn mostrar_tarjeta_red(ui: &mut egui::Ui, estadisticas: &EstadisticasRed) {
         }
 
         ui.separator();
-        ui.label("Conexiones TCP IPv4 por aplicación (no representa bytes transferidos):");
+        ui.label("Conexiones TCP IPv4/IPv6 por aplicación (no representa bytes transferidos):");
         if estadisticas.conexiones_tcp.is_empty() {
-            ui.label("No se detectaron conexiones TCP IPv4 activas.");
+            ui.label("No se detectaron conexiones TCP activas.");
         } else {
             let mut conexiones_por_proceso = std::collections::BTreeMap::new();
             for conexion in &estadisticas.conexiones_tcp {

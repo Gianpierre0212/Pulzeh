@@ -3,7 +3,7 @@ use crate::sistema::red::EstadisticasRed;
 use eframe::egui;
 use egui_plot::{Line, Plot, PlotPoints};
 
-const ESPACIADO_SECCION: f32 = 18.0;
+const ESPACIADO_SECCION: f32 = 15.0;
 
 /// Dibuja la estructura de navegación y la pantalla activa de PULZEH.
 #[allow(clippy::too_many_arguments)]
@@ -203,28 +203,27 @@ fn mostrar_dashboard(
     mostrar_cabecera(
         ui,
         "Resumen del sistema",
-        &format!("{nombre_sistema} {version_sistema} · Actualización automática cada segundo"),
+        &format!("{nombre_sistema} {version_sistema}"),
         Some(estado_general),
+        true,
     );
     ui.add_space(ESPACIADO_SECCION);
 
     ui.columns(2, |columnas| {
         tarjeta_recurso(
             &mut columnas[0],
-            "PROCESADOR",
             "CPU",
             uso_cpu_actual,
-            &format!("Promedio reciente: {promedio_cpu:.1}%"),
+            &format!("Promedio (1 min): {promedio_cpu:.1}%"),
             estado_cpu,
             super::estilos::color_acento(),
             cpu_sin_datos,
         );
         tarjeta_recurso(
             &mut columnas[1],
-            "MEMORIA PRINCIPAL",
-            "RAM",
+            "Memoria RAM",
             porcentaje_memoria,
-            &format!("{memoria_usada_gb:.2} de {memoria_total_gb:.2} GB"),
+            &format!("Usada: {memoria_usada_gb:.2} GB / {memoria_total_gb:.2} GB"),
             estado_memoria,
             super::estilos::color_memoria(),
             false,
@@ -235,15 +234,7 @@ fn mostrar_dashboard(
     mostrar_tarjeta_red(ui, estadisticas_red);
 
     ui.add_space(ESPACIADO_SECCION);
-    ui.horizontal(|ui| {
-        ui.heading(egui::RichText::new("Tendencias").size(19.0).strong());
-        ui.add_space(7.0);
-        ui.label(
-            egui::RichText::new("Últimas mediciones")
-                .small()
-                .color(super::estilos::color_secundario()),
-        );
-    });
+    ui.heading(egui::RichText::new("Tendencias").size(19.0).strong());
     ui.add_space(10.0);
 
     let puntos_cpu: PlotPoints = historial_cpu
@@ -260,10 +251,11 @@ fn mostrar_dashboard(
     ui.columns(2, |columnas| {
         tarjeta_grafico(
             &mut columnas[0],
-            "Procesador",
+            "CPU",
             "historial_cpu",
             puntos_cpu,
             super::estilos::color_acento(),
+            historial_cpu.last().copied().unwrap_or(uso_cpu_actual),
         );
         tarjeta_grafico(
             &mut columnas[1],
@@ -271,11 +263,21 @@ fn mostrar_dashboard(
             "historial_memoria",
             puntos_memoria,
             super::estilos::color_memoria(),
+            historial_memoria
+                .last()
+                .copied()
+                .unwrap_or(porcentaje_memoria),
         );
     });
 }
 
-fn mostrar_cabecera(ui: &mut egui::Ui, titulo: &str, subtitulo: &str, estado: Option<&str>) {
+fn mostrar_cabecera(
+    ui: &mut egui::Ui,
+    titulo: &str,
+    subtitulo: &str,
+    estado: Option<&str>,
+    mostrar_actualizacion: bool,
+) {
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ui.heading(egui::RichText::new(titulo).size(26.0).strong());
@@ -285,6 +287,13 @@ fn mostrar_cabecera(ui: &mut egui::Ui, titulo: &str, subtitulo: &str, estado: Op
         if let Some(estado) = estado {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 insignia_estado(ui, estado);
+                if mostrar_actualizacion {
+                    ui.add_space(12.0);
+                    ui.label(
+                        egui::RichText::new("↻  Actualiza cada 1 s")
+                            .color(super::estilos::color_secundario()),
+                    );
+                }
             });
         }
     });
@@ -293,7 +302,6 @@ fn mostrar_cabecera(ui: &mut egui::Ui, titulo: &str, subtitulo: &str, estado: Op
 #[allow(clippy::too_many_arguments)]
 fn tarjeta_recurso(
     ui: &mut egui::Ui,
-    categoria: &str,
     nombre: &str,
     porcentaje: f32,
     detalle: &str,
@@ -303,39 +311,50 @@ fn tarjeta_recurso(
 ) {
     tarjeta(ui, |ui| {
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(categoria).small().strong().color(color));
+            let icono = if nombre == "CPU" { "▦" } else { "▤" };
+            egui::Frame::new()
+                .fill(color.gamma_multiply(0.16))
+                .corner_radius(egui::CornerRadius::same(8))
+                .inner_margin(egui::Margin::same(6))
+                .show(ui, |ui| {
+                    ui.label(egui::RichText::new(icono).size(18.0).strong().color(color));
+                });
+            ui.label(egui::RichText::new(nombre).size(17.0).strong());
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                insignia_estado(ui, estado);
+                let color_estado = if estado == "Normal" {
+                    color
+                } else {
+                    super::componentes::color_nombre_estado(estado)
+                };
+                insignia_estado_con_color(ui, estado, color_estado);
             });
         });
-        ui.add_space(8.0);
+        ui.add_space(10.0);
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(nombre).size(17.0).strong());
             if sin_datos {
                 ui.label(
-                    egui::RichText::new("Esperando medición")
-                        .small()
+                    egui::RichText::new("Midiendo…")
+                        .size(34.0)
+                        .strong()
                         .color(super::estilos::color_secundario()),
                 );
             } else {
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label(
-                        egui::RichText::new(format!("{porcentaje:.1}%"))
-                            .size(25.0)
-                            .strong()
-                            .color(color),
-                    );
-                });
+                ui.label(
+                    egui::RichText::new(format!("{porcentaje:.1}%"))
+                        .size(42.0)
+                        .strong()
+                        .color(color),
+                );
             }
         });
-        ui.add_space(3.0);
+        ui.add_space(4.0);
+        super::componentes::barra_progreso(ui, porcentaje / 100.0, color);
+        ui.add_space(7.0);
         ui.label(
             egui::RichText::new(detalle)
                 .small()
                 .color(super::estilos::color_secundario()),
         );
-        ui.add_space(9.0);
-        super::componentes::barra_progreso(ui, porcentaje / 100.0, color);
     });
 }
 
@@ -345,16 +364,40 @@ fn tarjeta_grafico(
     id: &'static str,
     puntos: PlotPoints,
     color: egui::Color32,
+    valor_actual: f32,
 ) {
     tarjeta(ui, |ui| {
-        ui.label(egui::RichText::new(titulo).strong());
-        ui.add_space(5.0);
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new("▦").strong().color(color));
+            ui.label(egui::RichText::new(titulo).strong());
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                egui::Frame::new()
+                    .fill(color.gamma_multiply(0.13))
+                    .corner_radius(egui::CornerRadius::same(8))
+                    .inner_margin(egui::Margin::symmetric(8, 4))
+                    .show(ui, |ui| {
+                        ui.label(
+                            egui::RichText::new(format!("{valor_actual:.1}%"))
+                                .small()
+                                .strong()
+                                .color(color),
+                        );
+                    });
+                ui.add_space(8.0);
+                ui.label(
+                    egui::RichText::new("Último minuto")
+                        .small()
+                        .color(super::estilos::color_secundario()),
+                );
+            });
+        });
+        ui.add_space(7.0);
         Plot::new(id)
-            .height(176.0)
+            .height(205.0)
             .include_y(0.0)
             .include_y(100.0)
             .show_axes([false, true])
-            .show_grid([false, true])
+            .show_grid([true, true])
             .allow_zoom(false)
             .allow_drag(false)
             .show(ui, |plot| {
@@ -371,7 +414,13 @@ fn mostrar_hardware(
     memoria_usada_gb: f32,
     memoria_total_gb: f32,
 ) {
-    mostrar_cabecera(ui, "Hardware", "Información detectada del equipo", None);
+    mostrar_cabecera(
+        ui,
+        "Hardware",
+        "Información detectada del equipo",
+        None,
+        false,
+    );
     ui.add_space(ESPACIADO_SECCION);
 
     let modelo_cpu = sistema
@@ -480,6 +529,7 @@ fn mostrar_pantalla_procesos(ui: &mut egui::Ui, sistema: &sysinfo::System, filtr
         "Procesos activos",
         "Consumo medido por el sistema · actualización cada segundo",
         None,
+        false,
     );
     ui.add_space(ESPACIADO_SECCION);
 
@@ -553,168 +603,183 @@ fn mostrar_pantalla_procesos(ui: &mut egui::Ui, sistema: &sysinfo::System, filtr
 fn mostrar_tarjeta_red(ui: &mut egui::Ui, estadisticas: &EstadisticasRed) {
     tarjeta(ui, |ui| {
         ui.horizontal(|ui| {
-            ui.vertical(|ui| {
-                ui.label(egui::RichText::new("Conectividad").size(19.0).strong());
-                ui.label(
-                    egui::RichText::new("Tráfico total de los adaptadores detectados")
-                        .small()
-                        .color(super::estilos::color_secundario()),
-                );
-            });
+            ui.label(
+                egui::RichText::new("⌁")
+                    .size(24.0)
+                    .strong()
+                    .color(super::estilos::color_acento()),
+            );
+            ui.label(egui::RichText::new("Conectividad").size(19.0).strong());
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                egui::Frame::new()
-                    .fill(super::estilos::color_superficie_suave())
-                    .corner_radius(egui::CornerRadius::same(20))
-                    .inner_margin(egui::Margin::symmetric(10, 5))
-                    .show(ui, |ui| {
-                        ui.label(format!("{} adaptadores", estadisticas.interfaces));
-                    });
-            });
-        });
-
-        ui.add_space(14.0);
-        ui.columns(2, |columnas| {
-            tarjeta_velocidad(
-                &mut columnas[0],
-                "↓  DESCARGA",
-                estadisticas.descarga_bytes_segundo,
-                super::estilos::color_acento(),
-            );
-            tarjeta_velocidad(
-                &mut columnas[1],
-                "↑  SUBIDA",
-                estadisticas.subida_bytes_segundo,
-                super::estilos::color_memoria(),
-            );
-        });
-        ui.add_space(10.0);
-        ui.horizontal_wrapped(|ui| {
-            ui.label(
-                egui::RichText::new(format!(
-                    "↓ Total recibido: {}",
-                    formatear_bytes(estadisticas.recibidos)
-                ))
-                .small()
-                .color(super::estilos::color_secundario()),
-            );
-            ui.add_space(16.0);
-            ui.label(
-                egui::RichText::new(format!(
-                    "↑ Total enviado: {}",
-                    formatear_bytes(estadisticas.enviados)
-                ))
-                .small()
-                .color(super::estilos::color_secundario()),
-            );
-        });
-
-        ui.add_space(11.0);
-        ui.separator();
-        ui.collapsing(
-            format!(
-                "Adaptadores de red · {}",
-                estadisticas.detalles_interfaces.len()
-            ),
-            |ui| {
-                if estadisticas.detalles_interfaces.is_empty() {
-                    ui.label("No se detectaron adaptadores de red.");
-                }
-                for interfaz in &estadisticas.detalles_interfaces {
-                    ui.push_id(&interfaz.nombre, |ui| {
-                        ui.collapsing(format!("{} · {}", interfaz.nombre, interfaz.tipo), |ui| {
-                            ui.label(format!("Estado: {}", interfaz.estado));
-                            ui.label(if interfaz.activa {
-                                "Actividad reciente detectada"
-                            } else {
-                                "Sin actividad reciente"
-                            });
-                            ui.label(format!(
-                                "Velocidad de enlace: ↓ {} / ↑ {}",
-                                formatear_bits_por_segundo(interfaz.velocidad_bajada_bps),
-                                formatear_bits_por_segundo(interfaz.velocidad_subida_bps)
-                            ));
-                            ui.label(format!(
-                                "Recibidos: {} · Enviados: {}",
-                                formatear_bytes(interfaz.recibidos),
-                                formatear_bytes(interfaz.enviados)
-                            ));
-                            ui.label(format!(
-                                "Errores: ↓ {} · ↑ {}",
-                                interfaz.errores_recibidos, interfaz.errores_enviados
-                            ));
-                        });
-                    });
-                }
-            },
-        );
-
-        ui.collapsing(format!("Conexiones TCP por aplicación · {}", estadisticas.conexiones_tcp.len()), |ui| {
-            ui.label(
-                egui::RichText::new("Muestra conexiones activas y su proceso propietario; no mide bytes por aplicación.")
+                ui.label(
+                    egui::RichText::new(format!(
+                        "{} adaptadores detectados",
+                        estadisticas.interfaces
+                    ))
                     .small()
                     .color(super::estilos::color_secundario()),
-            );
-            if estadisticas.conexiones_tcp.is_empty() {
-                ui.label("No se detectaron conexiones TCP activas.");
-            } else {
-                let mut conexiones_por_proceso = std::collections::BTreeMap::new();
-                for conexion in &estadisticas.conexiones_tcp {
-                    conexiones_por_proceso
-                        .entry((conexion.pid, conexion.nombre_proceso.as_str()))
-                        .or_insert_with(Vec::new)
-                        .push(conexion);
-                }
+                );
+            });
+        });
 
-                egui::ScrollArea::vertical()
-                    .id_salt("lista_conexiones_tcp")
-                    .max_height(220.0)
-                    .show(ui, |ui| {
-                        for ((pid, nombre), conexiones) in conexiones_por_proceso {
-                            ui.push_id(pid, |ui| {
-                                ui.collapsing(
-                                    format!("{nombre} · PID {pid} · {} conexiones", conexiones.len()),
-                                    |ui| {
-                                        for (indice, conexion) in conexiones.iter().enumerate() {
-                                            ui.push_id(indice, |ui| {
-                                                ui.label(format!("{} · {}:{}", conexion.estado, conexion.direccion_remota, conexion.puerto_remoto));
-                                            });
-                                        }
-                                    },
-                                );
-                            });
-                        }
+        ui.add_space(10.0);
+        ui.horizontal(|ui| {
+            let ancho_total = ui.available_width();
+            let ancho_detalles = (ancho_total * 0.27).clamp(194.0, 254.0);
+            let ancho_metricas = (ancho_total - ancho_detalles - 14.0).max(420.0);
+
+            ui.allocate_ui_with_layout(
+                egui::vec2(ancho_metricas, 76.0),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    ui.columns(4, |columnas| {
+                        metrica_red(
+                            &mut columnas[0],
+                            "↓",
+                            "Descarga",
+                            &formatear_velocidad_red(estadisticas.descarga_bytes_segundo),
+                            super::estilos::color_acento(),
+                        );
+                        metrica_red(
+                            &mut columnas[1],
+                            "↑",
+                            "Subida",
+                            &formatear_velocidad_red(estadisticas.subida_bytes_segundo),
+                            super::estilos::color_memoria(),
+                        );
+                        metrica_red(
+                            &mut columnas[2],
+                            "↓",
+                            "Datos recibidos",
+                            &formatear_bytes(estadisticas.recibidos),
+                            super::estilos::color_acento(),
+                        );
+                        metrica_red(
+                            &mut columnas[3],
+                            "↑",
+                            "Datos enviados",
+                            &formatear_bytes(estadisticas.enviados),
+                            super::estilos::color_memoria(),
+                        );
                     });
-            }
+                },
+            );
+            ui.separator();
+            ui.allocate_ui_with_layout(
+                egui::vec2(ancho_detalles, 76.0),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    ui.collapsing("Adaptadores de red", |ui| {
+                        mostrar_detalle_adaptadores(ui, estadisticas);
+                    });
+                    ui.collapsing("Conexiones TCP por aplicación", |ui| {
+                        mostrar_detalle_conexiones(ui, estadisticas);
+                    });
+                },
+            );
         });
     });
 }
 
-fn tarjeta_velocidad(
-    ui: &mut egui::Ui,
-    titulo: &str,
-    bytes_por_segundo: f64,
-    color: egui::Color32,
-) {
-    egui::Frame::new()
-        .fill(super::estilos::color_superficie_suave())
-        .corner_radius(egui::CornerRadius::same(10))
-        .inner_margin(egui::Margin::same(12))
-        .show(ui, |ui| {
-            ui.label(egui::RichText::new(titulo).small().strong().color(color));
-            ui.add_space(3.0);
+fn metrica_red(ui: &mut egui::Ui, flecha: &str, titulo: &str, valor: &str, color: egui::Color32) {
+    ui.vertical(|ui| {
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new(flecha).size(17.0).strong().color(color));
             ui.label(
-                egui::RichText::new(format!(
-                    "{}/s",
-                    formatear_bytes_por_segundo(bytes_por_segundo)
-                ))
-                .size(20.0)
-                .strong(),
+                egui::RichText::new(titulo)
+                    .small()
+                    .color(super::estilos::color_secundario()),
             );
+        });
+        ui.add_space(3.0);
+        ui.label(egui::RichText::new(valor).size(18.0).strong());
+    });
+}
+
+fn mostrar_detalle_adaptadores(ui: &mut egui::Ui, estadisticas: &EstadisticasRed) {
+    if estadisticas.detalles_interfaces.is_empty() {
+        ui.label("No se detectaron adaptadores de red.");
+    }
+    for interfaz in &estadisticas.detalles_interfaces {
+        ui.push_id(&interfaz.nombre, |ui| {
+            ui.collapsing(format!("{} · {}", interfaz.nombre, interfaz.tipo), |ui| {
+                ui.label(format!("Estado: {}", interfaz.estado));
+                ui.label(if interfaz.activa {
+                    "Actividad reciente detectada"
+                } else {
+                    "Sin actividad reciente"
+                });
+                ui.label(format!(
+                    "Velocidad de enlace: ↓ {} / ↑ {}",
+                    formatear_bits_por_segundo(interfaz.velocidad_bajada_bps),
+                    formatear_bits_por_segundo(interfaz.velocidad_subida_bps)
+                ));
+                ui.label(format!(
+                    "Recibidos: {} · Enviados: {}",
+                    formatear_bytes(interfaz.recibidos),
+                    formatear_bytes(interfaz.enviados)
+                ));
+                ui.label(format!(
+                    "Errores: ↓ {} · ↑ {}",
+                    interfaz.errores_recibidos, interfaz.errores_enviados
+                ));
+            });
+        });
+    }
+}
+
+fn mostrar_detalle_conexiones(ui: &mut egui::Ui, estadisticas: &EstadisticasRed) {
+    ui.label(
+        egui::RichText::new(
+            "Conexiones activas por proceso; no indica cuántos datos transfirió cada aplicación.",
+        )
+        .small()
+        .color(super::estilos::color_secundario()),
+    );
+    if estadisticas.conexiones_tcp.is_empty() {
+        ui.label("No se detectaron conexiones TCP activas.");
+        return;
+    }
+
+    let mut conexiones_por_proceso = std::collections::BTreeMap::new();
+    for conexion in &estadisticas.conexiones_tcp {
+        conexiones_por_proceso
+            .entry((conexion.pid, conexion.nombre_proceso.as_str()))
+            .or_insert_with(Vec::new)
+            .push(conexion);
+    }
+
+    egui::ScrollArea::vertical()
+        .id_salt("lista_conexiones_tcp")
+        .max_height(220.0)
+        .show(ui, |ui| {
+            for ((pid, nombre), conexiones) in conexiones_por_proceso {
+                ui.push_id(pid, |ui| {
+                    ui.collapsing(
+                        format!("{nombre} · PID {pid} · {} conexiones", conexiones.len()),
+                        |ui| {
+                            for (indice, conexion) in conexiones.iter().enumerate() {
+                                ui.push_id(indice, |ui| {
+                                    ui.label(format!(
+                                        "{} · {}:{}",
+                                        conexion.estado,
+                                        conexion.direccion_remota,
+                                        conexion.puerto_remoto
+                                    ));
+                                });
+                            }
+                        },
+                    );
+                });
+            }
         });
 }
 
 fn insignia_estado(ui: &mut egui::Ui, estado: &str) {
-    let color = super::componentes::color_nombre_estado(estado);
+    insignia_estado_con_color(ui, estado, super::componentes::color_nombre_estado(estado));
+}
+
+fn insignia_estado_con_color(ui: &mut egui::Ui, estado: &str, color: egui::Color32) {
     egui::Frame::new()
         .fill(color.gamma_multiply(0.14))
         .corner_radius(egui::CornerRadius::same(20))
@@ -747,12 +812,14 @@ fn formatear_bytes(bytes: u64) -> String {
     }
 }
 
-fn formatear_bytes_por_segundo(bytes_por_segundo: f64) -> String {
-    const BYTES_POR_MEGABYTE: f64 = 1_048_576.0;
-    if bytes_por_segundo >= 1_048_576.0 {
-        format!("{:.2} MB", bytes_por_segundo / BYTES_POR_MEGABYTE)
+fn formatear_velocidad_red(bytes_por_segundo: f64) -> String {
+    let bits_por_segundo = bytes_por_segundo * 8.0;
+    if bits_por_segundo >= 1_000_000.0 {
+        format!("{:.1} Mbps", bits_por_segundo / 1_000_000.0)
+    } else if bits_por_segundo >= 1_000.0 {
+        format!("{:.1} Kbps", bits_por_segundo / 1_000.0)
     } else {
-        format!("{:.1} KB", bytes_por_segundo / 1_024.0)
+        format!("{bits_por_segundo:.0} bps")
     }
 }
 

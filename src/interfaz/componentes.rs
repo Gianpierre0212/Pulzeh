@@ -5,7 +5,7 @@ pub fn barra_progreso(ui: &mut egui::Ui, valor: f32, color: egui::Color32) {
     ui.add(
         egui::ProgressBar::new(valor.clamp(0.0, 1.0))
             .fill(color)
-            .show_percentage(),
+            .desired_height(12.0),
     );
 }
 pub fn estado_recurso(porcentaje: f32) -> &'static str {
@@ -35,7 +35,7 @@ pub fn color_nombre_estado(estado: &str) -> egui::Color32 {
     match estado {
         "Alto" => egui::Color32::from_rgb(220, 80, 80),
         "Atención" => egui::Color32::from_rgb(235, 190, 70),
-        "Normal" => egui::Color32::from_rgb(66, 217, 208),
+        "Normal" => egui::Color32::from_rgb(55, 211, 120),
         _ => egui::Color32::from_rgb(137, 149, 163),
     }
 }

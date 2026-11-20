@@ -1,4 +1,5 @@
 use crate::modelos::Vista;
+use crate::sistema::red::EstadisticasRed;
 use eframe::egui;
 use egui_plot::{Line, Plot, PlotPoints};
 
@@ -19,6 +20,7 @@ pub fn mostrar(
     historial_memoria: &[f32],
     nombre_sistema: &str,
     version_sistema: &str,
+    estadisticas_red: &EstadisticasRed,
     vista_actual: Vista,
 ) -> Option<Vista> {
     let mut nueva_vista = None;
@@ -84,6 +86,8 @@ pub fn mostrar(
                 ui.label("La sección de hardware está preparada.");
                 ui.label("Añadiremos aquí CPU, GPU, almacenamiento y red.");
             });
+            ui.add_space(12.0);
+            mostrar_tarjeta_red(ui, estadisticas_red);
         });
         return nueva_vista;
     }
@@ -103,6 +107,8 @@ pub fn mostrar(
             ui.label(format!("Sistema operativo: {nombre_sistema}"));
             ui.label(format!("Versión: {version_sistema}"));
         });
+        ui.add_space(16.0);
+        mostrar_tarjeta_red(ui, estadisticas_red);
         ui.add_space(16.0);
         ui.columns(2, |columnas| {
             columnas[0].group(|ui| {
@@ -143,4 +149,70 @@ pub fn mostrar(
         });
     });
     nueva_vista
+}
+
+fn mostrar_tarjeta_red(ui: &mut egui::Ui, estadisticas: &EstadisticasRed) {
+    ui.group(|ui| {
+        ui.heading("Actividad de red");
+        ui.label(format!(
+            "Interfaces detectadas: {}",
+            estadisticas.interfaces
+        ));
+        ui.label(format!(
+            "Recibidos acumulados: {}",
+            formatear_bytes(estadisticas.recibidos)
+        ));
+        ui.label(format!(
+            "Enviados acumulados: {}",
+            formatear_bytes(estadisticas.enviados)
+        ));
+        ui.label(format!(
+            "Descarga: {}/s",
+            formatear_bytes_por_segundo(estadisticas.descarga_bytes_segundo)
+        ));
+        ui.label(format!(
+            "Subida: {}/s",
+            formatear_bytes_por_segundo(estadisticas.subida_bytes_segundo)
+        ));
+        ui.separator();
+        ui.label("Detalle por adaptador");
+
+        if estadisticas.detalles_interfaces.is_empty() {
+            ui.label("No se detectaron interfaces de red.");
+        } else {
+            for interfaz in &estadisticas.detalles_interfaces {
+                ui.collapsing(&interfaz.nombre, |ui| {
+                    ui.label(format!("Tipo: {}", interfaz.tipo));
+                    ui.label(if interfaz.activa {
+                        "Actividad reciente: detectada"
+                    } else {
+                        "Actividad reciente: no detectada"
+                    });
+                    ui.label(format!(
+                        "Recibidos: {}",
+                        formatear_bytes(interfaz.recibidos)
+                    ));
+                    ui.label(format!("Enviados: {}", formatear_bytes(interfaz.enviados)));
+                    ui.label(format!(
+                        "Errores al recibir: {}",
+                        interfaz.errores_recibidos
+                    ));
+                    ui.label(format!("Errores al enviar: {}", interfaz.errores_enviados));
+                });
+            }
+        }
+
+        ui.separator();
+        ui.label("Uso por aplicación: requiere integración adicional con Windows.");
+    });
+}
+
+fn formatear_bytes(bytes: u64) -> String {
+    const BYTES_POR_MEGABYTE: f64 = 1_048_576.0;
+    format!("{:.2} MB", bytes as f64 / BYTES_POR_MEGABYTE)
+}
+
+fn formatear_bytes_por_segundo(bytes_por_segundo: f64) -> String {
+    const BYTES_POR_MEGABYTE: f64 = 1_048_576.0;
+    format!("{:.2} MB", bytes_por_segundo / BYTES_POR_MEGABYTE)
 }

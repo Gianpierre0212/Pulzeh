@@ -1,11 +1,13 @@
 use eframe::egui;
 use std::time::Instant;
-use sysinfo::System;
+use sysinfo::{Networks, System};
 
 use crate::{interfaz, modelos, sistema};
 
 pub struct AplicacionPulzeh {
     sistema: System,
+    redes: Networks,
+    estadisticas_red: sistema::red::EstadisticasRed,
     // Indica la pantalla que está actualmente activa.
     vista_actual: modelos::Vista,
 
@@ -29,9 +31,13 @@ impl AplicacionPulzeh {
     pub fn nueva() -> Self {
         let mut sistema = System::new_all();
         sistema.refresh_all();
+        let redes = Networks::new_with_refreshed_list();
+        let estadisticas_red = sistema::red::leer(&redes);
 
         Self {
             sistema,
+            redes,
+            estadisticas_red,
             // Indica la pantalla que está actualmente activa.
             vista_actual: modelos::Vista::Dashboard,
             historial_cpu: Vec::new(),
@@ -52,6 +58,19 @@ impl eframe::App for AplicacionPulzeh {
         if self.ultima_actualizacion.elapsed().as_secs() >= 1 {
             let uso_cpu = sistema::cpu::actualizar(&mut self.sistema);
             sistema::memoria::actualizar(&mut self.sistema);
+            sistema::red::actualizar(&mut self.redes);
+            let lectura_red = sistema::red::leer(&self.redes);
+            let tiempo_transcurrido = self.ultima_actualizacion.elapsed().as_secs_f64();
+            let (descarga, subida) = sistema::red::calcular_velocidades(
+                &self.estadisticas_red,
+                &lectura_red,
+                tiempo_transcurrido,
+            );
+            self.estadisticas_red = sistema::red::EstadisticasRed {
+                descarga_bytes_segundo: descarga,
+                subida_bytes_segundo: subida,
+                ..lectura_red
+            };
 
             let (_, _, porcentaje_memoria) = sistema::memoria::leer(&self.sistema);
             self.porcentaje_memoria_actual = porcentaje_memoria;
@@ -120,6 +139,7 @@ impl eframe::App for AplicacionPulzeh {
             &self.historial_memoria,
             &nombre_sistema,
             &version_sistema,
+            &self.estadisticas_red,
             self.vista_actual,
         ) {
             self.vista_actual = nueva_vista;

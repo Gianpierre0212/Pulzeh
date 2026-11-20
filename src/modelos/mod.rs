@@ -3,4 +3,5 @@
 pub enum Vista {
     Dashboard,
     Hardware,
+    Procesos,
 }

@@ -1,6 +1,6 @@
 use eframe::egui;
 use std::time::Instant;
-use sysinfo::{Networks, System};
+use sysinfo::{Networks, ProcessesToUpdate, System};
 
 use crate::{interfaz, modelos, sistema};
 
@@ -10,6 +10,7 @@ pub struct AplicacionPulzeh {
     estadisticas_red: sistema::red::EstadisticasRed,
     // Indica la pantalla que está actualmente activa.
     vista_actual: modelos::Vista,
+    filtro_procesos: String,
 
     // Guarda las últimas mediciones de CPU para calcular un promedio.
     historial_cpu: Vec<f32>,
@@ -42,6 +43,7 @@ impl AplicacionPulzeh {
             estadisticas_red,
             // Indica la pantalla que está actualmente activa.
             vista_actual: modelos::Vista::Dashboard,
+            filtro_procesos: String::new(),
             historial_cpu: Vec::new(),
             historial_memoria: Vec::new(),
             porcentaje_memoria_actual: 0.0,
@@ -58,6 +60,7 @@ impl eframe::App for AplicacionPulzeh {
 
         // Solo actualizamos las mediciones una vez por segundo.
         if self.ultima_actualizacion.elapsed().as_secs() >= 1 {
+            self.sistema.refresh_processes(ProcessesToUpdate::All, true);
             let uso_cpu = sistema::cpu::actualizar(&mut self.sistema);
             sistema::memoria::actualizar(&mut self.sistema);
             sistema::red::actualizar(&mut self.redes);
@@ -146,6 +149,8 @@ impl eframe::App for AplicacionPulzeh {
             &version_sistema,
             &self.estadisticas_red,
             self.vista_actual,
+            &self.sistema,
+            &mut self.filtro_procesos,
         ) {
             self.vista_actual = nueva_vista;
         }

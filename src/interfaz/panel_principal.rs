@@ -22,6 +22,8 @@ pub fn mostrar(
     version_sistema: &str,
     estadisticas_red: &EstadisticasRed,
     vista_actual: Vista,
+    sistema: &sysinfo::System,
+    filtro_procesos: &mut String,
 ) -> Option<Vista> {
     let mut nueva_vista = None;
 
@@ -62,12 +64,12 @@ pub fn mostrar(
                     .color(super::estilos::color_secundario()),
             );
             ui.add_space(8.0);
-            ui.label("○  Procesos");
-            ui.label(
-                egui::RichText::new("   Próximamente")
-                    .small()
-                    .color(super::estilos::color_secundario()),
-            );
+            if ui
+                .selectable_label(vista_actual == Vista::Procesos, "○  Procesos")
+                .clicked()
+            {
+                nueva_vista = Some(Vista::Procesos);
+            }
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 ui.label(
                     egui::RichText::new("Versión 0.2.0")
@@ -88,6 +90,13 @@ pub fn mostrar(
             });
             ui.add_space(12.0);
             mostrar_tarjeta_red(ui, estadisticas_red);
+        });
+        return nueva_vista;
+    }
+
+    if vista_actual == Vista::Procesos {
+        egui::CentralPanel::default().show(contexto, |ui| {
+            mostrar_pantalla_procesos(ui, sistema, filtro_procesos);
         });
         return nueva_vista;
     }
@@ -149,6 +158,57 @@ pub fn mostrar(
         });
     });
     nueva_vista
+}
+
+fn mostrar_pantalla_procesos(ui: &mut egui::Ui, sistema: &sysinfo::System, filtro: &mut String) {
+    ui.heading("Procesos activos");
+    ui.label("Uso de CPU y memoria por proceso, actualizado cada segundo.");
+    ui.add_space(10.0);
+    ui.label("Buscar proceso:");
+    ui.text_edit_singleline(filtro);
+
+    let filtro_normalizado = filtro.to_lowercase();
+    let mut procesos: Vec<_> = sistema
+        .processes()
+        .iter()
+        .filter(|(_, proceso)| {
+            proceso
+                .name()
+                .to_string_lossy()
+                .to_lowercase()
+                .contains(&filtro_normalizado)
+        })
+        .collect();
+    procesos.sort_by(|(_, a), (_, b)| {
+        b.cpu_usage()
+            .total_cmp(&a.cpu_usage())
+            .then_with(|| a.name().cmp(b.name()))
+    });
+
+    ui.label(format!("{} procesos encontrados", procesos.len()));
+    ui.separator();
+    egui::ScrollArea::vertical()
+        .id_salt("lista_procesos")
+        .show(ui, |ui| {
+            egui::Grid::new("tabla_procesos")
+                .striped(true)
+                .num_columns(4)
+                .show(ui, |ui| {
+                    ui.strong("Proceso");
+                    ui.strong("PID");
+                    ui.strong("CPU");
+                    ui.strong("Memoria");
+                    ui.end_row();
+
+                    for (pid, proceso) in procesos {
+                        ui.label(proceso.name().to_string_lossy());
+                        ui.label(pid.to_string());
+                        ui.label(format!("{:.1}%", proceso.cpu_usage()));
+                        ui.label(formatear_bytes(proceso.memory()));
+                        ui.end_row();
+                    }
+                });
+        });
 }
 
 fn mostrar_tarjeta_red(ui: &mut egui::Ui, estadisticas: &EstadisticasRed) {

@@ -96,8 +96,8 @@ impl eframe::App for AplicacionPulzeh {
             // Guardamos la medición actual en el historial.
             self.historial_cpu.push(uso_cpu);
 
-            // Conservamos solamente las últimas 10 mediciones.
-            if self.historial_cpu.len() > 10 {
+            // Conservamos un minuto de mediciones para que el gráfico muestre contexto.
+            if self.historial_cpu.len() > 60 {
                 self.historial_cpu.remove(0);
             }
 
